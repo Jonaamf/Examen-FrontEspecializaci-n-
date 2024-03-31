@@ -5,9 +5,12 @@ import PaginaInicio from "./paginas/Inicio.pagina";
 import PaginaFavoritos from "./paginas/Favoritos.pagina";
 import PaginaDetalle from "./paginas/Detalle.pagina";
 import Encabezado from "./componentes/layout/encabezado.componente";
+import store from './redux/store';
+import { Provider } from 'react-redux';
 
 function App() {
   return (
+    <Provider store={store}>
     <div className="App">
       <Encabezado />
       <Routes>
@@ -16,6 +19,7 @@ function App() {
         <Route path="detalle" element={<PaginaDetalle />} />
       </Routes>
     </div>
+    </Provider>
   );
 }
 
