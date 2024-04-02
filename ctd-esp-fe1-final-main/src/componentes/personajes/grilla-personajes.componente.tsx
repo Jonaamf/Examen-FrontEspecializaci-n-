@@ -5,7 +5,7 @@ import TarjetaPersonaje from './tarjeta-personaje.componente';
 import Paginacion from '../paginacion/paginacion.componente';
 import BotonFavorito from '../botones/boton-favorito.componente';
 import { RootState } from '../../redux/store';
-import { setFiltroNombre, setCharacters, agregarFavorito, quitarFavorito } from '../../redux/reducer'; // Importa las acciones necesarias
+import { setFiltroNombre, setCharacters, agregarFavorito, quitarFavorito, quitarTodosLosFavoritos, FETCH_CHARACTERS } from '../../redux/reducer';
 
 export interface CharacterRickMorty {
     id: number;
@@ -25,7 +25,7 @@ const GrillaPersonajes: React.FC = () => {
             try {
                 const response = await fetch(`https://rickandmortyapi.com/api/character/?page=${paginaActual}`);
                 const data = await response.json();
-                dispatch(setCharacters(data.results)); // Utiliza dispatch para llamar a la acción setCharacters
+                dispatch(setCharacters(data.results));
             } catch (error) {
                 console.error('Error al obtener los personajes:', error);
             }
@@ -34,23 +34,23 @@ const GrillaPersonajes: React.FC = () => {
         fetchCharacters();
     }, [paginaActual, dispatch]);
 
+    // Agregar la acción FETCH_CHARACTERS aquí
     useEffect(() => {
-        const favoritosActuales = JSON.parse(localStorage.getItem('favoritos') || '[]');
-        dispatch(agregarFavorito(favoritosActuales)); // Utiliza dispatch para llamar a la acción setFavoritos
+        dispatch({ type: FETCH_CHARACTERS });
     }, [dispatch]);
 
     const agregarAFavoritos = (character: CharacterRickMorty) => {
-        const nuevosFavoritos = [...favoritos, character];
-        dispatch(agregarFavorito(nuevosFavoritos)); // Utiliza dispatch para llamar a la acción setFavoritos
-        localStorage.setItem('favoritos', JSON.stringify(nuevosFavoritos));
+        dispatch(agregarFavorito(character));
     };
 
     const quitarDeFavoritos = (character: CharacterRickMorty) => {
-        dispatch(quitarFavorito(character.id)); // Utiliza dispatch para llamar a la acción quitarFavorito
-        const nuevosFavoritos = favoritos.filter((fav: CharacterRickMorty) => fav.id !== character.id);
-        localStorage.setItem('favoritos', JSON.stringify(nuevosFavoritos));
+        dispatch(quitarFavorito(character.id));
     };
-    
+
+    const limpiarFavoritos = () => {
+        dispatch(quitarTodosLosFavoritos()); // Llamar a la acción quitarTodosLosFavoritos para eliminar todos los favoritos
+        localStorage.removeItem('favoritos'); // También limpiar la lista de favoritos del almacenamiento local
+    };
 
     const esFavorito = (character: CharacterRickMorty) => {
         return favoritos.some((fav: CharacterRickMorty) => fav.id === character.id);
@@ -58,23 +58,12 @@ const GrillaPersonajes: React.FC = () => {
 
     const handleFiltroNombreChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const filtro = event.target.value;
-        dispatch(setFiltroNombre(filtro)); // Utiliza dispatch para llamar a la acción setFiltroNombre
+        dispatch(setFiltroNombre(filtro));
     };
 
-    const paginaAnterior = () => {
-        if (paginaActual > 1) {
-            setPaginaActual(paginaActual - 1);
-        }
-    };
-
-    const paginaSiguiente = () => {
-        setPaginaActual(paginaActual + 1);
-    };
-
-    // Filtrar los personajes según el filtro de nombre
-    const charactersFiltrados = characters.filter((character: CharacterRickMorty) =>
+    const charactersFiltrados = characters ? characters.filter((character: CharacterRickMorty) =>
         character.name.toLowerCase().includes(filtroNombre.toLowerCase())
-    );
+    ) : [];
 
     return (
         <div>
@@ -89,31 +78,36 @@ const GrillaPersonajes: React.FC = () => {
                 />
             </div>
             <div className="grilla-personajes">
-                {charactersFiltrados.map((character: CharacterRickMorty) => (
-                    <div key={character.id} className="tarjeta-personaje">
-                        <img src={character.image} alt={character.name} />
-                        <div className="tarjeta-personaje-body">
-                            <span>{character.name}</span>
-                            <BotonFavorito
-                                esFavorito={esFavorito(character)}
-                                onClick={() => {
-                                    if (esFavorito(character)) {
-                                        quitarDeFavoritos(character);
-                                    } else {
-                                        agregarAFavoritos(character);
-                                    }
-                                }}
-                            />
+                {charactersFiltrados.length > 0 ? (
+                    charactersFiltrados.map((character: CharacterRickMorty) => (
+                        <div key={character.id} className="tarjeta-personaje">
+                            <img src={character.image} alt={character.name} />
+                            <div className="tarjeta-personaje-body">
+                                <span>{character.name}</span>
+                                <BotonFavorito
+                                    esFavorito={esFavorito(character)}
+                                    onClick={() => {
+                                        if (esFavorito(character)) {
+                                            quitarDeFavoritos(character);
+                                        } else {
+                                            agregarAFavoritos(character);
+                                        }
+                                    }}
+                                />
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    ))
+                ) : (
+                    <p>No se encontraron personajes.</p>
+                )}
             </div>
             <Paginacion
-                paginaAnterior={paginaAnterior}
-                paginaSiguiente={paginaSiguiente}
+                paginaAnterior={() => setPaginaActual(paginaActual - 1)}
+                paginaSiguiente={() => setPaginaActual(paginaActual + 1)}
                 habilitarAnterior={paginaActual > 1}
                 habilitarSiguiente={true} // Esto puede ajustarse dependiendo de si hay más personajes disponibles
             />
+            <button onClick={limpiarFavoritos}>Limpiar Favoritos</button>
         </div>
     );
 };

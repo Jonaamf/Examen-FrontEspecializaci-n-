@@ -1,5 +1,5 @@
 import { call, put, takeEvery } from 'redux-saga/effects';
-import { setCharacters, FETCH_CHARACTERS } from '../redux/reducer'; // Importa tus acciones y tipos de acción
+import { setCharacters, FETCH_CHARACTERS } from '../redux/reducer'; 
 
 // Define tu saga para manejar la obtención de personajes
 function* fetchCharacters(): Generator<any, void, any> {
