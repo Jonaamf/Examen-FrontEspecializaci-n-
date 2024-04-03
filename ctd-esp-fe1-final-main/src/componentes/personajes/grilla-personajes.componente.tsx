@@ -5,7 +5,7 @@ import TarjetaPersonaje from './tarjeta-personaje.componente';
 import Paginacion from '../paginacion/paginacion.componente';
 import BotonFavorito from '../botones/boton-favorito.componente';
 import { RootState } from '../../redux/store';
-import { setFiltroNombre, setCharacters, agregarFavorito, quitarFavorito, quitarTodosLosFavoritos, FETCH_CHARACTERS } from '../../redux/reducer';
+import { setFiltroNombre, agregarFavorito, quitarFavorito, quitarTodosLosFavoritos } from '../../redux/reducer';
 
 export interface CharacterRickMorty {
     id: number;
@@ -14,30 +14,32 @@ export interface CharacterRickMorty {
 }
 
 const GrillaPersonajes: React.FC = () => {
-    const [paginaActual, setPaginaActual] = useState<number>(1);
     const dispatch = useDispatch();
-    const characters = useSelector((state: RootState) => state.reducer.characters);
     const filtroNombre = useSelector((state: RootState) => state.reducer.filtroNombre);
     const favoritos = useSelector((state: RootState) => state.reducer.favoritos);
+    const [characters, setCharacters] = useState<CharacterRickMorty[]>([]);
+    const [currentPage, setCurrentPage] = useState<number>(1);
+    const [totalPages, setTotalPages] = useState<number>(1); // Agregamos estado para el total de páginas
 
     useEffect(() => {
-        const fetchCharacters = async () => {
-            try {
-                const response = await fetch(`https://rickandmortyapi.com/api/character/?page=${paginaActual}`);
-                const data = await response.json();
-                dispatch(setCharacters(data.results));
-            } catch (error) {
-                console.error('Error al obtener los personajes:', error);
-            }
-        };
-
         fetchCharacters();
-    }, [paginaActual, dispatch]);
+    }, [currentPage, filtroNombre]); // Agregar filtroNombre como dependencia
 
-    // Agregar la acción FETCH_CHARACTERS aquí
-    useEffect(() => {
-        dispatch({ type: FETCH_CHARACTERS });
-    }, [dispatch]);
+    const fetchCharacters = async () => {
+        try {
+            // Si hay un filtro de nombre, lo aplicamos en la llamada a la API
+            const baseUrl = 'https://rickandmortyapi.com/api/character';
+            const urlWithParams = filtroNombre
+                ? `${baseUrl}?name=${encodeURIComponent(filtroNombre)}&page=${currentPage}`
+                : `${baseUrl}?page=${currentPage}`;
+            const response = await fetch(urlWithParams);
+            const data = await response.json();
+            setCharacters(data.results);
+            setTotalPages(data.info.pages); // Actualizamos el total de páginas
+        } catch (error) {
+            console.error('Error al obtener los personajes:', error);
+        }
+    };
 
     const agregarAFavoritos = (character: CharacterRickMorty) => {
         dispatch(agregarFavorito(character));
@@ -48,8 +50,8 @@ const GrillaPersonajes: React.FC = () => {
     };
 
     const limpiarFavoritos = () => {
-        dispatch(quitarTodosLosFavoritos()); // Llamar a la acción quitarTodosLosFavoritos para eliminar todos los favoritos
-        localStorage.removeItem('favoritos'); // También limpiar la lista de favoritos del almacenamiento local
+        dispatch(quitarTodosLosFavoritos());
+        localStorage.removeItem('favoritos');
     };
 
     const esFavorito = (character: CharacterRickMorty) => {
@@ -59,11 +61,9 @@ const GrillaPersonajes: React.FC = () => {
     const handleFiltroNombreChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const filtro = event.target.value;
         dispatch(setFiltroNombre(filtro));
+        // Reiniciar la página actual a 1 cada vez que se cambia el filtro
+        setCurrentPage(1);
     };
-
-    const charactersFiltrados = characters ? characters.filter((character: CharacterRickMorty) =>
-        character.name.toLowerCase().includes(filtroNombre.toLowerCase())
-    ) : [];
 
     return (
         <div>
@@ -78,8 +78,8 @@ const GrillaPersonajes: React.FC = () => {
                 />
             </div>
             <div className="grilla-personajes">
-                {charactersFiltrados.length > 0 ? (
-                    charactersFiltrados.map((character: CharacterRickMorty) => (
+                {characters.length > 0 ? (
+                    characters.map((character) => (
                         <div key={character.id} className="tarjeta-personaje">
                             <img src={character.image} alt={character.name} />
                             <div className="tarjeta-personaje-body">
@@ -102,14 +102,22 @@ const GrillaPersonajes: React.FC = () => {
                 )}
             </div>
             <Paginacion
-                paginaAnterior={() => setPaginaActual(paginaActual - 1)}
-                paginaSiguiente={() => setPaginaActual(paginaActual + 1)}
-                habilitarAnterior={paginaActual > 1}
-                habilitarSiguiente={true} // Esto puede ajustarse dependiendo de si hay más personajes disponibles
+                paginaAnterior={() => setCurrentPage(currentPage - 1)}
+                paginaSiguiente={() => setCurrentPage(currentPage + 1)}
+                habilitarAnterior={currentPage > 1}
+                habilitarSiguiente={currentPage < totalPages} // Deshabilitar el botón siguiente si no hay más páginas
             />
-            <button onClick={limpiarFavoritos}>Limpiar Favoritos</button>
         </div>
     );
 };
 
 export default GrillaPersonajes;
+
+
+
+
+
+
+
+
+

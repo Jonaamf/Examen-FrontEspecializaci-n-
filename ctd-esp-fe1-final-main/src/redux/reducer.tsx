@@ -1,5 +1,3 @@
-// reducer.ts
-
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { CharacterRickMorty } from '../componentes/personajes/grilla-personajes.componente';
 
@@ -40,17 +38,15 @@ const miReducerSlice = createSlice({
       state.favoritos = [];
     },
   },
-  extraReducers: (builder) => {
-    builder.addMatcher(
-      (action) => action.type === FETCH_CHARACTERS,
-      (state, action: PayloadAction<CharacterRickMorty[]>) => {
-        state.characters = action.payload;
-      }
-    );
-  },
 });
 
+// Define el reducer para la acción FETCH_CHARACTERS
+export const fetchCharactersReducer = (state: MiReducerState, action: PayloadAction<CharacterRickMorty[]>) => {
+  state.characters = action.payload;
+};
+
 // Exporta los actions y el reducer
-export const { setCharacters, setFiltroNombre, agregarFavorito, quitarFavorito, quitarTodosLosFavoritos } = miReducerSlice.actions;
+export const { setFiltroNombre, agregarFavorito, quitarFavorito, quitarTodosLosFavoritos, setCharacters } = miReducerSlice.actions;
 export default miReducerSlice.reducer;
+
 
